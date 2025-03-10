@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -13,6 +13,24 @@ POSTS = [
 @app.route('/api/posts', methods=['GET'])
 def get_posts():
     return jsonify(POSTS)
+
+
+@app.route('/api/posts', methods=['POST'])
+def add_posts():
+    # Expecting JSON object in the body of the request
+    data = request.get_json()
+    try:
+        if not data or data["title"] is None or data["content"] is None or  not data["title"] or not data["content"]:
+            return jsonify({"error": "Invalid or missing JSON data"}), 400
+    except KeyError:
+        return jsonify({"error": "Invalid or missing JSON data"}), 400
+
+    # Add data to the dictionary
+    data_id = len(POSTS) + 1
+    data["id"] = data_id
+    POSTS.append(data)
+
+    return jsonify(data), 201
 
 
 if __name__ == '__main__':
