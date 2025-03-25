@@ -8,11 +8,43 @@ POSTS = [
     {"id": 1, "title": "First post", "content": "This is the first post."},
     {"id": 2, "title": "Second post", "content": "This is the second post."},
 ]
+data_blue_print = {"title", "content"}
 
+@app.route('/api/posts', methods=['GET', 'POST'])
+def handle_posts():
+    if request.method == 'POST':
+        data = request.json
+        if not data["title"] or not data["content"]:
+            return jsonify({"message": "missing-items"}), 404
 
-@app.route('/api/posts', methods=['GET'])
-def get_posts():
-    return jsonify(POSTS)
+        title = data['title']
+        content = data['content']
+        if POSTS:
+            max_post = max(POSTS, key=lambda x: x['id'])
+            new_id = max_post['id'] + 1
+        else:
+            new_id = 1
+        new_post = {"id": new_id, "title": title, "content": content}
+        POSTS.append(new_post)
+
+        return jsonify(new_post), 201
+
+    if request.method == 'GET':
+        sort = request.args.get('sort')
+        direction = request.args.get('direction')
+
+        if not sort or not direction:
+            return jsonify(POSTS), 200
+
+        if sort not in data_blue_print or direction not in ['asc', 'desc']:
+            return jsonify({"message": "Invalid sort parameters"}), 400
+
+        if direction == 'desc':
+            reverse = True
+        else:
+            reverse = False
+        sorted_posts = sorted(POSTS, key=lambda x: x[sort], reverse=reverse)
+        return jsonify(sorted_posts), 200
 
 
 @app.route('/api/posts', methods=['POST'])
@@ -57,6 +89,7 @@ def search_posts():
         return jsonify(results), 200
     else:
         return jsonify({"message": f"No posts found that match your queries"}), 404
+
 
 
 if __name__ == '__main__':
