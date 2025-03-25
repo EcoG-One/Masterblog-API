@@ -34,15 +34,30 @@ def add_posts():
 
 @app.route('/api/posts/<int:post_id>', methods=['DELETE'])
 def delete(post_id):
-    try:
-        if POSTS[post_id] is None:
-            # Post not found
-            return "Post not found", 404
-    except IndexError:
-        return "Post not found", 404
+    i = 0
+    for post in POSTS:
+        if post["id"] == post_id:
+            del POSTS[i]
+            return jsonify({"message": f'Post with id {post_id} has been deleted successfully.'}), 200
+        i += 1
+    return "Post not found", 404
+
+
+@app.route('/api/posts/search', methods=['GET'])
+def search_posts():
+    search_title = request.args.get('title')
+    search_content = request.args.get('content')
+    results = [
+        post for post in POSTS
+        if (search_title.lower() in post['title'].lower() if search_title else True) and
+           (search_content.lower() in post['content'].lower() if search_content else True)
+    ]
+
+    if results:
+        return jsonify(results), 200
     else:
-        del POSTS[post_id]
-    return jsonify({"message": f'Post with id {post_id} has been deleted successfully.'}), 200
+        return jsonify({"message": f"No posts found that match your queries"}), 404
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5002, debug=True)
