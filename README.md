@@ -53,7 +53,7 @@ The frontend server will start running on `http://localhost:5001`.
 
 ## Usage
 1. Open a web browser and go to `http://localhost:5001`.
-2. Enter the backend API URL (`http://localhost:5002`) in the provided input field and click "Load Posts".
+2. If not there, enter the backend API URL (`http://localhost:5002`) in the provided input field and click "Load Posts".
 3. Use the interface to add new posts, view existing posts, delete posts, and search for posts.
 
 ## API Endpoints
