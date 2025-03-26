@@ -1,3 +1,4 @@
+from django.core.exceptions import BadRequest
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -8,57 +9,48 @@ POSTS = [
     {"id": 1, "title": "First post", "content": "This is the first post."},
     {"id": 2, "title": "Second post", "content": "This is the second post."},
 ]
-data_blue_print = {"title", "content"}
 
-@app.route('/api/posts', methods=['GET', 'POST'])
-def handle_posts():
-    if request.method == 'POST':
-        data = request.json
-        if not data["title"] or not data["content"]:
-            return jsonify({"message": "missing-items"}), 404
+@app.route('/api/posts', methods=['GET'])
+def get_posts():
+    sort = request.args.get('sort')
+    direction = request.args.get('direction')
 
-        title = data['title']
-        content = data['content']
-        if POSTS:
-            max_post = max(POSTS, key=lambda x: x['id'])
-            new_id = max_post['id'] + 1
-        else:
-            new_id = 1
-        new_post = {"id": new_id, "title": title, "content": content}
-        POSTS.append(new_post)
+    if not sort or not direction:
+        return jsonify(POSTS), 200
 
-        return jsonify(new_post), 201
+    if sort not in ["title", "content"] or direction not in ['asc', 'desc']:
+        return jsonify({"message": "Invalid sort parameters"}), 400
 
-    if request.method == 'GET':
-        sort = request.args.get('sort')
-        direction = request.args.get('direction')
-
-        if not sort or not direction:
-            return jsonify(POSTS), 200
-
-        if sort not in data_blue_print or direction not in ['asc', 'desc']:
-            return jsonify({"message": "Invalid sort parameters"}), 400
-
-        if direction == 'desc':
-            reverse = True
-        else:
-            reverse = False
-        sorted_posts = sorted(POSTS, key=lambda x: x[sort], reverse=reverse)
-        return jsonify(sorted_posts), 200
+    if direction == 'desc':
+        reverse = True
+    else:
+        reverse = False
+    sorted_posts = sorted(POSTS, key=lambda x: x[sort], reverse=reverse)
+    return jsonify(sorted_posts), 200
 
 
 @app.route('/api/posts', methods=['POST'])
 def add_posts():
+    data = None
     # Expecting JSON object in the body of the request
-    data = request.get_json()
     try:
-        if not data or data["title"] is None or data["content"] is None or  not data["title"] or not data["content"]:
-            return jsonify({"error": "Invalid or missing JSON data"}), 400
-    except KeyError:
-        return jsonify({"error": "Invalid or missing JSON data"}), 400
-
-    # Add data to the dictionary
-    data_id = len(POSTS) + 1
+        data = request.get_json()
+    except Exception:
+        return jsonify({"Error": "Invalid or missing JSON data"}), 400
+    if data is None or data == {}:
+        return jsonify({"Error": "Nothing to Add"}), 400
+    try:
+        if data["title"] == '':
+            return jsonify({"error": "'Title' is missing"}), 400
+        if data["content"] == '':
+            return jsonify({"Error": "'Content' is missing"}), 400
+    except (KeyError, TypeError) as e:
+        return jsonify('{Error:'+str(e)+' is missing}'), 400
+    if POSTS:
+        max_post = max(POSTS, key=lambda x: x['id'])
+        data_id = max_post['id'] + 1
+    else:
+        data_id = 1
     data["id"] = data_id
     POSTS.append(data)
     return jsonify(data), 201
@@ -72,7 +64,27 @@ def delete(post_id):
             del POSTS[i]
             return jsonify({"message": f'Post with id {post_id} has been deleted successfully.'}), 200
         i += 1
-    return "Post not found", 404
+    return jsonify({"message": f"Post with id {post_id} not found"}), 404
+
+
+@app.route('/api/posts/<int:post_id>', methods=['PUT'])
+def update(post_id):
+    i = 0
+    for post in POSTS:
+        if post["id"] == post_id:
+            data = request.json
+            try:
+                POSTS[i]["title"] = data["title"]
+            except KeyError:
+                pass
+            try:
+                POSTS[i]["content"] = data["content"]
+            except KeyError:
+                pass
+            return jsonify({"message": f'Post with id {post_id} has been '
+                                       f'updated successfully.'}), 200
+        i += 1
+    return jsonify({"message": f"Post with id {post_id} not found"}), 404
 
 
 @app.route('/api/posts/search', methods=['GET'])
