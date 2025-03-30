@@ -1,4 +1,3 @@
-from django.core.exceptions import BadRequest
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -39,9 +38,9 @@ def add_posts():
     if data is None or data == {}:
         return jsonify({"Error": "Nothing to Add"}), 400
     try:
-        if data["title"] == '':
+        if data["title"].strip() == '':
             return jsonify({"Error": "'Title' is missing"}), 400
-        if data["content"] == '':
+        if data["content"].strip() == '':
             return jsonify({"Error": "'Content' is missing"}), 400
     except (KeyError, TypeError) as e:
         return jsonify('{Error:'+str(e)+' is missing}'), 400
@@ -74,7 +73,20 @@ def update(post_id):
     i = 0
     for post in POSTS:
         if post["id"] == post_id:
-            data = request.json
+            try:
+                data = request.get_json()
+            except Exception:
+                return jsonify({"Error": "Invalid or missing JSON data"}), 400
+            if data is None or data == {}:
+                return jsonify({"Error": "Nothing to Add"}), 400
+            try:
+                if data["title"].strip() == '':
+                    return jsonify({"Error": "'Title' is missing"}), 400
+                if data["content"].strip() == '':
+                    return jsonify({"Error": "'Content' is missing"}), 400
+            except (KeyError, TypeError) as e:
+                return jsonify('{Error:' + str(e) + ' is missing}'), 400
+
             try:
                 POSTS[i]["title"] = data["title"]
             except KeyError:
